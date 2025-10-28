@@ -1,0 +1,78 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def plot_boxplots_with_stats(df, value_col, group_col):
+    sns.set(style="whitegrid")
+    stars = sorted(df[group_col].unique())
+    plt.figure(figsize=(14, 6))
+    ax = sns.boxplot(x=group_col, y=value_col, data=df)
+    ax.set_title(f'{value_col} 箱型图 按{group_col}分类')
+    for i, star in enumerate(stars):
+        group_data = df[df[group_col] == star][value_col].dropna()
+        q1 = group_data.quantile(0.25)
+        q3 = group_data.quantile(0.75)
+        iqr = q3 - q1
+        low = q1 - 1.5*iqr
+        high = q3 + 1.5*iqr
+        mean = group_data.mean()
+        median = group_data.median()
+        # 横坐标对齐：i 是序号, 需做微调避免重叠
+        ax.text(i-0.2, q1, f'Q1:{q1:.2f}', color='blue')
+        ax.text(i-0.2, q3, f'Q3:{q3:.2f}', color='orange')
+        ax.text(i-0.2, low, f'Q1-1.5IQR:{low:.2f}', color='green')
+        ax.text(i-0.2, high, f'Q3+1.5IQR:{high:.2f}', color='red')
+        ax.text(i+0.2, mean, f'Mean:{mean:.2f}', color='purple')
+        ax.text(i+0.2, median, f'Median:{median:.2f}', color='brown')
+    plt.xlabel(group_col)
+    plt.ylabel(value_col)
+    plt.tight_layout()
+    plt.show()
+
+# 绘制 pricediff 箱型图
+plot_boxplots_with_stats(df1, 'pricediff', 'star')
+# 绘制 yanchi_price 箱型图
+plot_boxplots_with_stats(df1, 'yanchi_price', 'star')
+
+
+
+outlier_df = pd.DataFrame()
+for star in df1['star'].unique():
+    for col in ['pricediff', 'yanchi_price']:
+        group_data = df1[df1['star'] == star][col].dropna()
+        q1 = group_data.quantile(0.25)
+        q3 = group_data.quantile(0.75)
+        iqr = q3 - q1
+        low, high = q1 - 1.5*iqr, q3 + 1.5*iqr
+        outliers = df1[(df1['star'] == star) & ((df1[col] < low) | (df1[col] > high))]
+        outliers['异常字段'] = col
+        outlier_df = pd.concat([outlier_df, outliers], ignore_index=True)
+
+# 导出 Excel 文件
+outlier_df.to_excel('outlier_data.xlsx', index=False)
+
+
+import numpy as np
+from scipy.stats import norm
+
+stars = sorted(df1['star'].unique())
+fig, axes = plt.subplots(len(stars), 2, figsize=(14, 4*len(stars)))
+
+for idx, star in enumerate(stars):
+    group = df1[df1['star'] == star]
+    # yanchi_price
+    sns.histplot(group['yanchi_price'], kde=True, stat='density', ax=axes[idx, 0], color='skyblue')
+    mu, sigma = group['yanchi_price'].mean(), group['yanchi_price'].std()
+    x = np.linspace(group['yanchi_price'].min(), group['yanchi_price'].max(), 100)
+    axes[idx, 0].plot(x, norm.pdf(x, mu, sigma), 'r-', lw=2)
+    axes[idx, 0].set_title(f'Star:{star} yanchi_price\nMean={mu:.2f}, Std={sigma:.2f}')
+    
+    # pricediff
+    sns.histplot(group['pricediff'], kde=True, stat='density', ax=axes[idx, 1], color='lightgreen')
+    mu2, sigma2 = group['pricediff'].mean(), group['pricediff'].std()
+    x2 = np.linspace(group['pricediff'].min(), group['pricediff'].max(), 100)
+    axes[idx, 1].plot(x2, norm.pdf(x2, mu2, sigma2), 'r-', lw=2)
+    axes[idx, 1].set_title(f'Star:{star} pricediff\nMean={mu2:.2f}, Std={sigma2:.2f}')
+
+plt.tight_layout()
+plt.show()
