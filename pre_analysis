@@ -43,10 +43,15 @@ for star in df1['star'].unique():
         q1 = group_data.quantile(0.25)
         q3 = group_data.quantile(0.75)
         iqr = q3 - q1
-        low, high = q1 - 1.5*iqr, q3 + 1.5*iqr
-        outliers = df1[(df1['star'] == star) & ((df1[col] < low) | (df1[col] > high))]
+        low = q1 - 1.5 * iqr
+        high = q3 + 1.5 * iqr
+        # 筛选异常
+        outliers = df1[(df1['star'] == star) & ((df1[col] < low) | (df1[col] > high))].copy()
         outliers['异常字段'] = col
+        outliers['1.5IQR'] = 1.5 * iqr
+        outliers['Q3+1.5IQR'] = high
         outlier_df = pd.concat([outlier_df, outliers], ignore_index=True)
+
 
 # 导出 Excel 文件
 outlier_df.to_excel('outlier_data.xlsx', index=False)
