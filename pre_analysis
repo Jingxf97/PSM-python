@@ -1,0 +1,65 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 假设df1已存在
+# 设置风格
+sns.set(style="whitegrid")
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# 箱型图: yanchi_price
+sns.boxplot(x='star', y='yanchi_price', data=df1, ax=axes[0])
+axes[0].set_title('yanchi_price 箱型图 按star分类')
+axes[0].set_xlabel('star')
+axes[0].set_ylabel('yanchi_price')
+# 标注均值、中位数
+for star in sorted(df1['star'].unique()):
+    group = df1[df1['star'] == star]['yanchi_price']
+    mean = group.mean()
+    median = group.median()
+    axes[0].text(star, mean, f'Mean:{mean:.2f}', horizontalalignment='center', color='blue')
+    axes[0].text(star, median, f'Median:{median:.2f}', horizontalalignment='center', color='red')
+
+# 箱型图: pricediff
+sns.boxplot(x='star', y='pricediff', data=df1, ax=axes[1])
+axes[1].set_title('pricediff 箱型图 按star分类')
+axes[1].set_xlabel('star')
+axes[1].set_ylabel('pricediff')
+# 标注均值、中位数
+for star in sorted(df1['star'].unique()):
+    group = df1[df1['star'] == star]['pricediff']
+    mean = group.mean()
+    median = group.median()
+    axes[1].text(star, mean, f'Mean:{mean:.2f}', horizontalalignment='center', color='blue')
+    axes[1].text(star, median, f'Median:{median:.2f}', horizontalalignment='center', color='red')
+
+plt.tight_layout()
+plt.show()
+
+
+from scipy.stats import norm
+import numpy as np
+
+# 按star分组分别绘制正态分布曲线
+stars = sorted(df1['star'].unique())
+fig, axes = plt.subplots(len(stars), 2, figsize=(14, 4*len(stars)))
+
+for idx, star in enumerate(stars):
+    group = df1[df1['star'] == star]
+    # yanchi_price
+    sns.histplot(group['yanchi_price'], kde=True, stat='density', ax=axes[idx, 0], color='skyblue')
+    mu, sigma = group['yanchi_price'].mean(), group['yanchi_price'].std()
+    x = np.linspace(group['yanchi_price'].min(), group['yanchi_price'].max(), 100)
+    axes[idx, 0].plot(x, norm.pdf(x, mu, sigma), 'r-', lw=2)
+    axes[idx, 0].set_title(f'Star: {star} yanchi_price 正态分布\nMean={mu:.2f}, Std={sigma:.2f}')
+    
+    # pricediff
+    sns.histplot(group['pricediff'], kde=True, stat='density', ax=axes[idx, 1], color='lightgreen')
+    mu, sigma = group['pricediff'].mean(), group['pricediff'].std()
+    x = np.linspace(group['pricediff'].min(), group['pricediff'].max(), 100)
+    axes[idx, 1].plot(x, norm.pdf(x, mu, sigma), 'r-', lw=2)
+    axes[idx, 1].set_title(f'Star: {star} pricediff 正态分布\nMean={mu:.2f}, Std={sigma:.2f}')
+
+plt.tight_layout()
+plt.show()
